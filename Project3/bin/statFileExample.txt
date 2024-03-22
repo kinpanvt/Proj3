@@ -1,0 +1,16 @@
+Standard sort on oneBlock.txt
+Cache Hits: 23299
+Disk Reads: 1
+Disk Writes: 1
+Standard sort on fiveBlock.txt
+Cache Hits: 143550
+Disk Reads: 5
+Disk Writes: 5
+Standard sort on bigInput.bin
+Cache Hits: 314114
+Disk Reads: 10
+Disk Writes: 10
+Standard sort on bigInputWithFewerBuffers.bin
+Cache Hits: 138283
+Disk Reads: 39
+Disk Writes: 39
