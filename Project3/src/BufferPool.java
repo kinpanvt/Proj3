@@ -37,13 +37,25 @@ public class BufferPool {
     public BufferPool(String filePath, int cacheSize) throws IOException {
         this.cacheSize = cacheSize;
         this.diskFile = new RandomAccessFile(filePath, "rw");
-
-        this.cache = new LinkedHashMap<Integer, byte[]>(cacheSize, 0.75f,
-            true) {
+        this.cache = new LinkedHashMap<>(16, 0.75f, true) {
             @Override
             protected boolean removeEldestEntry(
                 Map.Entry<Integer, byte[]> eldest) {
-                return size() > BufferPool.this.cacheSize;
+                boolean shouldRemove = size() > BufferPool.this.cacheSize;
+                if (shouldRemove && dirtyBlocks.getOrDefault(eldest.getKey(),
+                    false)) {
+                    try {
+                        diskFile.seek(eldest.getKey() * (long)BLOCK_SIZE);
+                        diskFile.write(eldest.getValue());
+                        dirtyBlocks.remove(eldest.getKey());
+                        diskWrites++;
+                    }
+                    catch (IOException e) {
+                        e.printStackTrace(); // Proper error handling should be
+                                             // implemented
+                    }
+                }
+                return shouldRemove;
             }
         };
     }
@@ -93,21 +105,32 @@ public class BufferPool {
      *             If there is an issue reading the block from disk.
      */
     public byte[] getBlock(int blockNumber) throws IOException {
-        // Check if the block is already in the cache
         byte[] block = cache.get(blockNumber);
         if (block != null) {
             cacheHits++;
             return block;
         }
-
-        // Block is not in cache; read from disk
         block = new byte[BLOCK_SIZE];
-        diskFile.seek((long)blockNumber * BLOCK_SIZE);
+        diskFile.seek(blockNumber * (long)BLOCK_SIZE);
         diskFile.readFully(block);
         diskReads++;
-        // Add the block to the cache
         cache.put(blockNumber, block);
         return block;
+    }
+
+
+    /**
+     * Mark the block as dirty without writing it to disk immediately.
+     * 
+     * @param blockNumber
+     *            The block number to retrieve.
+     * @param blockData
+     *            Data in block
+     * 
+     */
+    public void markBlockAsDirty(int blockNumber, byte[] blockData) {
+        cache.put(blockNumber, blockData);
+        dirtyBlocks.put(blockNumber, true);
     }
 
 
@@ -187,10 +210,8 @@ public class BufferPool {
         block[offset + 2] = (byte)(record[1] >> 8);
         block[offset + 3] = (byte)(record[1]);
 
-        // Mark the block as modified to ensure it's written back to disk later
-        // For this, you may need an additional structure to track modified
-        // blocks or a custom block object
-        writeBlock(blockNumber, block);
+        // Instead of writing to disk, mark the block as dirty.
+        markBlockAsDirty(blockNumber, block);
     }
 
 
@@ -214,15 +235,15 @@ public class BufferPool {
      *             If there is an issue flushing blocks to disk.
      */
     public void flush() throws IOException {
-        for (Map.Entry<Integer, Boolean> entry : dirtyBlocks.entrySet()) {
-            if (entry.getValue()) { // If the block is marked as dirty
-                byte[] block = cache.get(entry.getKey());
-                if (block != null) { // If the block is in the cache
-                    diskFile.seek(entry.getKey() * BLOCK_SIZE);
-                    diskFile.write(block);
-                }
+        for (Integer blockNumber : dirtyBlocks.keySet()) {
+            byte[] block = cache.get(blockNumber);
+            if (block != null) {
+                diskFile.seek(blockNumber * (long)BLOCK_SIZE);
+                diskFile.write(block);
+                diskWrites++;
             }
         }
-        dirtyBlocks.clear(); // Clear the dirty marks after flushing
+        dirtyBlocks.clear();
     }
+
 }

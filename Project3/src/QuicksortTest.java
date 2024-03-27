@@ -72,7 +72,7 @@ public class QuicksortTest extends TestCase {
 
         // hmmm... maybe do some sorting on that file ...
         // then we can do:
-        // assertTrue(CheckFile.check(fname));
+        //assertTrue(CheckFile.check(fname));
     }
 
 
