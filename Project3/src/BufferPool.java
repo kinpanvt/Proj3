@@ -45,10 +45,10 @@ public class BufferPool {
                 if (shouldRemove && dirtyBlocks.getOrDefault(eldest.getKey(),
                     false)) {
                     try {
+                        diskWrites++;
                         diskFile.seek(eldest.getKey() * (long)BLOCK_SIZE);
                         diskFile.write(eldest.getValue());
                         dirtyBlocks.remove(eldest.getKey());
-                        diskWrites++;
                     }
                     catch (IOException e) {
                         e.printStackTrace(); // Proper error handling should be
@@ -126,7 +126,6 @@ public class BufferPool {
      *            The block number to retrieve.
      * @param blockData
      *            Data in block
-     * 
      */
     public void markBlockAsDirty(int blockNumber, byte[] blockData) {
         cache.put(blockNumber, blockData);

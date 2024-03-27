@@ -191,3 +191,13 @@ Cache Hits: 28013
 Disk Reads: 1
 Disk Writes: 1
 Sort Time: 12ms
+Standard sort on input.bin
+Cache Hits: 22403
+Disk Reads: 546
+Disk Writes: 0
+Sort Time: 10ms
+Standard sort on input.bin
+Cache Hits: 27914
+Disk Reads: 1
+Disk Writes: 1
+Sort Time: 8ms

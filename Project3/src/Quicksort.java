@@ -155,30 +155,95 @@ public class Quicksort {
      *             accessing or modifying the data through the buffer pool.
      */
     public void quickSort(int low, int high) throws Exception {
-        if (low < high) {
+        while (low < high) {
             int pi = partition(low, high);
-            quickSort(low, pi - 1);
-            quickSort(pi + 1, high);
+
+            // Handling the smaller partition
+            // through recursion and the larger with iterative approach to
+            // reduce call stack depth.
+            if (pi - low < high - pi) {
+                quickSort(low, pi - 1);
+                low = pi + 1;
+            }
+            else {
+                quickSort(pi + 1, high);
+                high = pi - 1;
+            }
         }
+    }
+
+// private short[] medianOfThreePivot(int low, int high) throws Exception {
+// short[] start = bufferPool.getRecord(low);
+// short[] middle = bufferPool.getRecord(low + (high - low) / 2);
+// short[] end = bufferPool.getRecord(high);
+// if (start[0] > middle[0]) {
+// if (middle[0] > end[0]) {
+// return middle;
+// } else if (start[0] > end[0]) {
+// return end;
+// } else {
+// return start;
+// }
+// } else {
+// if (start[0] > end[0]) {
+// return start;
+// } else if (middle[0] > end[0]) {
+// return end;
+// } else {
+// return middle;
+// }
+// }
+// }
+
+
+    private int medianOfThreePivotIndex(int low, int high) throws Exception {
+        int mid = low + (high - low) / 2;
+        short[] start = bufferPool.getRecord(low);
+        short[] middle = bufferPool.getRecord(mid);
+        short[] end = bufferPool.getRecord(high);
+
+        // Ordering the start, middle, end to find the median
+        if (start[0] > end[0]) {
+            short[] temp = start;
+            start = end;
+            end = temp;
+        }
+        if (middle[0] > end[0]) {
+            mid = high;
+        }
+        else if (middle[0] > start[0]) {
+            mid = low;
+        }
+
+        return mid;
     }
 
 
     private int partition(int low, int high) throws Exception {
+        int pivotIndex = medianOfThreePivotIndex(low, high);
+        // Swap pivot with high to use existing partition logic
+        swapRecords(pivotIndex, high);
         short[] pivot = bufferPool.getRecord(high);
-        int i = (low - 1);
+
+        int i = low - 1;
         for (int j = low; j < high; j++) {
             short[] record = bufferPool.getRecord(j);
             if (record[0] < pivot[0]) {
                 i++;
-                short[] temp = bufferPool.getRecord(i);
-                bufferPool.writeRecord(i, record);
-                bufferPool.writeRecord(j, temp);
+                swapRecords(i, j);
             }
         }
-        short[] temp = bufferPool.getRecord(i + 1);
-        bufferPool.writeRecord(i + 1, pivot);
-        bufferPool.writeRecord(high, temp);
+        swapRecords(i + 1, high);
         return i + 1;
+    }
+
+
+    private void swapRecords(int index1, int index2) throws Exception {
+        short[] record1 = bufferPool.getRecord(index1);
+        short[] record2 = bufferPool.getRecord(index2);
+
+        bufferPool.writeRecord(index1, record2);
+        bufferPool.writeRecord(index2, record1);
     }
 
 
