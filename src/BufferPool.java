@@ -1,7 +1,10 @@
 import java.io.RandomAccessFile;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -42,13 +45,14 @@ public class BufferPool {
             protected boolean removeEldestEntry(
                 Map.Entry<Integer, byte[]> eldest) {
                 boolean shouldRemove = size() > BufferPool.this.cacheSize;
-                if (shouldRemove && dirtyBlocks.getOrDefault(eldest.getKey(),
-                    false)) {
+                if (shouldRemove) {
                     try {
-                        diskWrites++;
-                        diskFile.seek(eldest.getKey() * (long)BLOCK_SIZE);
-                        diskFile.write(eldest.getValue());
-                        dirtyBlocks.remove(eldest.getKey());
+                        if (dirtyBlocks.getOrDefault(eldest.getKey(), false)) {
+                            diskWrites++;
+                            diskFile.seek(eldest.getKey() * (long)BLOCK_SIZE);
+                            diskFile.write(eldest.getValue());
+                            dirtyBlocks.remove(eldest.getKey());
+                        }
                     }
                     catch (IOException e) {
                         e.printStackTrace();
@@ -137,6 +141,17 @@ public class BufferPool {
 
 
     /**
+     * Mark the block as dirty without writing it to disk immediately.
+     * 
+     * @param blockNumber
+     *            Block to write
+     */
+    public void markBlockAsDirty(int blockNumber) {
+        dirtyBlocks.put(blockNumber, true);
+    }
+
+
+    /**
      * Writes a block back to the disk and updates the cache, marking the block
      * as dirty if modified.
      * 
@@ -148,18 +163,8 @@ public class BufferPool {
      *             If there is an issue writing the block to disk.
      */
     public void writeBlock(int blockNumber, byte[] block) throws IOException {
-        if (block.length != BLOCK_SIZE) {
-            throw new IllegalArgumentException("Block size mismatch.");
-        }
-
-        // Write block to disk
-        diskWrites++;
-        diskFile.seek((long)blockNumber * BLOCK_SIZE);
-        diskFile.write(block);
-        dirtyBlocks.put(blockNumber, true);
-
-        // Update the cache
         cache.put(blockNumber, block);
+        markBlockAsDirty(blockNumber);
     }
 
 
@@ -225,6 +230,7 @@ public class BufferPool {
      *             If there is an issue closing the file.
      */
     public void close() throws IOException {
+        flush();
         diskFile.close();
     }
 
@@ -250,4 +256,25 @@ public class BufferPool {
         dirtyBlocks.clear();
     }
 
+
+    /**
+     * Different ways of flushing blocks for binary blocks
+     * 
+     * @throws IOException
+     *             exceptions
+     */
+    public void flushDirtyBlocks() throws IOException {
+        // Sort keys to minimize disk head movement
+        List<Integer> keys = new ArrayList<>(dirtyBlocks.keySet());
+        Collections.sort(keys);
+        for (Integer key : keys) {
+            if (dirtyBlocks.get(key)) {
+                byte[] block = cache.get(key);
+                diskFile.seek(key * (long)BLOCK_SIZE);
+                diskFile.write(block);
+                diskWrites++;
+                dirtyBlocks.put(key, false); // Mark as clean
+            }
+        }
+    }
 }

@@ -256,3 +256,38 @@ Cache Hits: 37059
 Disk Reads: 1
 Disk Writes: 1
 Sort Time: 7ms
+Standard sort on input.bin
+Cache Hits: 37376
+Disk Reads: 1
+Disk Writes: 1
+Sort Time: 7ms
+Standard sort on input.bin
+Cache Hits: 39438
+Disk Reads: 1
+Disk Writes: 1
+Sort Time: 12ms
+Standard sort on input.bin
+Cache Hits: 36717
+Disk Reads: 1
+Disk Writes: 1
+Sort Time: 7ms
+Standard sort on input.bin
+Cache Hits: 36892
+Disk Reads: 1
+Disk Writes: 1
+Sort Time: 9ms
+Standard sort on input.bin
+Cache Hits: 35887
+Disk Reads: 1
+Disk Writes: 1
+Sort Time: 11ms
+Standard sort on input.bin
+Cache Hits: 36940
+Disk Reads: 1
+Disk Writes: 1
+Sort Time: 7ms
+Standard sort on sortedInput.bin
+Cache Hits: 39099
+Disk Reads: 1
+Disk Writes: 1
+Sort Time: 9ms

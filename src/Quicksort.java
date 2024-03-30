@@ -10,8 +10,10 @@
  * by the buffer pool.
  */
 
+import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -86,17 +88,24 @@ public class Quicksort {
         String statFileName = args[2];
         try {
             long startTime = System.currentTimeMillis();
-            sortFile(filename, numbBuffers); // Pass numbBuffers to sortFile
+
+            BufferPool bufferPool = new BufferPool(filename, numbBuffers);
+            long fileSize = new File(filename).length();
+            int totalRecords = (int)(fileSize / RECORD_SIZE);
+
+            // Updated to match the new constructor signature
+            OptimizedQuicksort optimizedQuicksort = new OptimizedQuicksort(
+                bufferPool, totalRecords);
+
+            // Now calling quickSort without parameters
+            optimizedQuicksort.quickSort();
+
+            bufferPool.flush(); // Flush changes after sorting
+
             long endTime = System.currentTimeMillis();
+            qs.writeStatistics(filename, numbBuffers, statFileName, endTime
+                - startTime);
 
-            try {
-                qs.writeStatistics(filename, numbBuffers, statFileName, endTime
-                    - startTime);
-
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
             System.out.println("File has been sorted.");
         }
         catch (Exception e) {
@@ -134,6 +143,40 @@ public class Quicksort {
         int totalRecords = (int)(fileSize / RECORD_SIZE);
         qs.quickSort(0, totalRecords - 1);
         qs.finalizeSorting();
+    }
+
+
+    /**
+     * Checks if the file is binary
+     * 
+     * @param path
+     *            to the file
+     * @return true or false
+     * @throws IOException
+     *             exception
+     */
+    public static boolean isBinaryFile(String path) throws IOException {
+        File file = new File(path);
+        if (!file.exists())
+            return false; // or throw an exception
+
+        try (BufferedInputStream in = new BufferedInputStream(
+            new FileInputStream(file))) {
+            int size = Math.min(1024, (int)file.length());
+            byte[] data = new byte[size];
+            in.read(data);
+            return containsNonPrintableCharacters(data);
+        }
+    }
+
+
+    private static boolean containsNonPrintableCharacters(byte[] data) {
+        for (byte b : data) {
+            if (b < 0x09 || (b > 0x0D && b < 0x20) || b > 0x7E) {
+                return true;
+            }
+        }
+        return false;
     }
 
 
