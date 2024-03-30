@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 /**
  * A different approach to quicksort.
@@ -45,8 +46,8 @@ public class OptimizedQuicksort {
         // Convert the list to an array for sorting
         short[][] dataArray = data.toArray(new short[0][]);
 
-        // Perform the in-memory quicksort
-        quickSortLocal(dataArray, 0, totalRecords - 1);
+        // Perform the iterative quicksort
+        quickSortIterative(dataArray, 0, totalRecords - 1);
 
         // Write the sorted data back to disk
         for (int i = 0; i < dataArray.length; i++) {
@@ -55,22 +56,71 @@ public class OptimizedQuicksort {
     }
 
 
-    /**
-     * Performs the quicksort algorithm on an in-memory array of data.
-     * 
-     * @param data
-     *            The array of data to sort.
-     * @param low
-     *            The starting index for the sort operation.
-     * @param high
-     *            The ending index for the sort operation.
-     */
-    private void quickSortLocal(short[][] data, int low, int high) {
-        if (low < high) {
-            int pi = partition(data, low, high);
-            quickSortLocal(data, low, pi - 1);
-            quickSortLocal(data, pi + 1, high);
+    private void quickSortIterative(short[][] data, int low, int high) {
+        Stack<Integer> stack = new Stack<>();
+        stack.push(low);
+        stack.push(high);
+
+        while (!stack.isEmpty()) {
+            high = stack.pop();
+            low = stack.pop();
+
+            if (low < high) {
+                short[] pivot = data[low];
+
+                // 3-way partitioning
+                int[] partitionIndices = threeWayPartition(data, low, high,
+                    pivot);
+                int lt = partitionIndices[0];
+                int gt = partitionIndices[1];
+
+                // Push left segment onto stack if it has more than one element
+                if (lt - 1 > low) {
+                    stack.push(low);
+                    stack.push(lt - 1);
+                }
+
+                // Push right segment onto stack if it has more than one element
+                if (gt + 1 < high) {
+                    stack.push(gt + 1);
+                    stack.push(high);
+                }
+            }
         }
+
+    }
+
+
+    private int[] threeWayPartition(
+        short[][] data,
+        int low,
+        int high,
+        short[] pivot) {
+        int lt = low;
+        int gt = high;
+        int i = low + 1;
+        while (i <= gt) {
+            int cmp = compare(data[i], pivot);
+            if (cmp < 0)
+                swap(data, lt++, i++);
+            else if (cmp > 0)
+                swap(data, i, gt--);
+            else
+                i++;
+        }
+        return new int[] { lt, gt };
+    }
+
+
+    private void swap(short[][] data, int i, int j) {
+        short[] temp = data[i];
+        data[i] = data[j];
+        data[j] = temp;
+    }
+
+
+    private int compare(short[] a, short[] b) {
+        return Short.compare(a[0], b[0]);
     }
 
 
@@ -87,9 +137,8 @@ public class OptimizedQuicksort {
      */
     private int partition(short[][] data, int low, int high) {
         short[] pivot = data[high];
-        int i = (low - 1); // Index of smaller element
+        int i = (low - 1);
         for (int j = low; j < high; j++) {
-            // If current element is smaller than the pivot
             if (data[j][0] < pivot[0]) {
                 i++;
                 // Swap data[i] and data[j]
@@ -105,4 +154,28 @@ public class OptimizedQuicksort {
 
         return i + 1;
     }
+
+
+    /**
+     * Performs insertion sort on a portion of the array.
+     * 
+     * @param data
+     *            The array of data to sort.
+     * @param low
+     *            The starting index for the sort operation.
+     * @param high
+     *            The ending index for the sort operation.
+     */
+    private void insertionSort(short[][] data, int low, int high) {
+        for (int i = low + 1; i <= high; i++) {
+            short[] key = data[i];
+            int j = i - 1;
+            while (j >= low && data[j][0] > key[0]) {
+                data[j + 1] = data[j];
+                j = j - 1;
+            }
+            data[j + 1] = key;
+        }
+    }
+
 }
